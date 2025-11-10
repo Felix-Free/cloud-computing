@@ -901,6 +901,48 @@
             
             // 滚动到顶部
             window.scrollTo(0, 0);
+
+            // ===============================================
+            // GA4 跟踪：虚拟页面浏览 (View)
+            // ===============================================
+            // 当页面内容通过 JavaScript 切换时，需要手动发送 page_view 事件。
+            let pageTitle = document.title;
+            let pagePath = '/' + pageId; // 模拟路径，例如 /product-detail
+
+            if (pageId === 'product-detail') {
+                // 浏览商品详情页 (View Item Event)
+                gtag('event', 'view_item', {
+                    currency: "CNY",
+                    value: 399, // 假设示例商品的单价
+                    items: [{
+                        item_id: "SKU001",
+                        item_name: "时尚运动鞋",
+                        currency: "CNY",
+                        price: 399.00
+                    }]
+                });
+                pageTitle = '时尚运动鞋详情页';
+            } else if (pageId === 'cart') {
+                // 查看购物车 (View Cart Event)
+                gtag('event', 'view_cart', {
+                    currency: "CNY",
+                    value: 907.00, // 购物车总价 (示例值)
+                    items: [
+                        // 建议在这里动态获取和发送购物车中的所有商品信息
+                        { item_id: "SKU001", item_name: "时尚运动鞋", price: 399.00, quantity: 1 },
+                        { item_id: "SKU002", item_name: "潮流板鞋", price: 299.00, quantity: 1 },
+                        { item_id: "SKU003", item_name: "户外背包", price: 259.00, quantity: 1 }
+                    ]
+                });
+                pageTitle = '购物车';
+            }
+
+            // 发送 page_view 事件
+            gtag('event', 'page_view', {
+                page_title: pageTitle,
+                page_path: pagePath,
+                send_to: 'G-GV8DQP1JR9'
+            });
         }
 
         // 购物车功能
@@ -912,9 +954,26 @@
         }
         
         function addToCart(productName, price, quantity = 1) {
-            cartItems += parseInt(quantity);
+            const qty = parseInt(quantity);
+            cartItems += qty;
             updateCartCount();
-            alert(`已成功添加 ${quantity} 件 ${productName} 到购物车！`);
+            alert(`已成功添加 ${qty} 件 ${productName} 到购物车！`);
+
+            // ===============================================
+            // GA4 跟踪：加入购物车 (Add to Cart Event)
+            // ===============================================
+            gtag('event', 'add_to_cart', {
+                currency: "CNY",
+                value: price * qty,
+                items: [{
+                    item_id: productName === '时尚运动鞋' ? "SKU001" : (productName === '潮流板鞋' ? "SKU002" : "SKU099"),
+                    item_name: productName,
+                    currency: "CNY",
+                    price: price,
+                    quantity: qty
+                }]
+            });
+
             showPage('cart');
         }
         
@@ -931,9 +990,50 @@
             let quantity = parseInt(quantityInput.value);
             quantityInput.value = quantity + 1;
         }
+
+        // 立即购买按钮点击时触发的事件
+        document.querySelector('.product-actions .btn-success').addEventListener('click', function() {
+            // ===============================================
+            // GA4 跟踪：开始结账 (Begin Checkout Event)
+            // ===============================================
+            // 注意：这里仅是一个示例，实际应传入准确的商品信息
+            gtag('event', 'begin_checkout', {
+                currency: "CNY",
+                value: 399.00 * parseInt(document.getElementById('quantity').value), // 假设是时尚运动鞋
+                items: [{
+                    item_id: "SKU001",
+                    item_name: "时尚运动鞋",
+                    currency: "CNY",
+                    price: 399.00,
+                    quantity: parseInt(document.getElementById('quantity').value)
+                }]
+            });
+            // showPage('cart') 在原代码中已经实现
+        });
         
         function checkout() {
             alert('感谢您的购买！订单已提交，我们将尽快处理。');
+            
+            // ===============================================
+            // GA4 跟踪：购买/结账 (Purchase Event)
+            // ===============================================
+            // 这是一个模拟的购买事件，用于跟踪转化
+            gtag('event', 'purchase', {
+                transaction_id: "T_20231110_123456", // 替换为唯一的订单 ID
+                affiliation: "ShopEasy Online Store",
+                value: 907.00, // 订单总金额
+                tax: 0,
+                shipping: 0,
+                currency: "CNY",
+                coupon: "WELCOME50", // 示例优惠券
+                items: [
+                    // 建议在这里动态获取和发送购物车中的所有商品信息
+                    { item_id: "SKU001", item_name: "时尚运动鞋", price: 399.00, quantity: 1, item_category: "鞋类" },
+                    { item_id: "SKU002", item_name: "潮流板鞋", price: 299.00, quantity: 1, item_category: "鞋类" },
+                    { item_id: "SKU003", item_name: "户外背包", price: 259.00, quantity: 1, item_category: "背包" }
+                ]
+            });
+            
             cartItems = 0;
             updateCartCount();
             showPage('home');
@@ -966,6 +1066,16 @@
                     cartItems--;
                     updateCartCount();
                 }
+            });
+        });
+
+        // 页面加载完成后，触发一次首页的 page_view
+        document.addEventListener('DOMContentLoaded', () => {
+             // 确保初始页面加载时也发送 page_view
+            gtag('event', 'page_view', {
+                page_title: document.title,
+                page_path: '/home',
+                send_to: 'G-GV8DQP1JR9'
             });
         });
     </script>
